@@ -1,0 +1,10 @@
+@import 'tailwindcss';
+
+/*
+ * La landing (`UpSoftworksLanding`) trae su propio reset y todos sus estilos
+ * en un bloque <style> con scope `.up`. Acá dejamos solo lo mínimo global.
+ */
+body {
+  margin: 0;
+  background: #120b07;
+}
