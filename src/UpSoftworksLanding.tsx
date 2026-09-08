@@ -185,40 +185,16 @@ function Navegador({ url, src, alt, className, lazy = true }: NavegadorProps) {
   );
 }
 
-function TiendaApple() {
+function TiendasLVH() {
   return (
-    <svg viewBox="0 0 16 16" width="17" height="17" fill="currentColor" aria-hidden="true">
-      <path d="M11.18 8.44c.02 2.06 1.8 2.74 1.82 2.75-.02.05-.29 1-.94 1.98-.57.86-1.16 1.71-2.09 1.73-.91.02-1.21-.54-2.25-.54s-1.37.52-2.24.56c-.9.03-1.58-.93-2.16-1.78C1.9 11.4 1 8.2 2.21 6.05c.6-1.07 1.67-1.74 2.83-1.76.88-.02 1.71.6 2.25.6s1.55-.74 2.62-.63c.44.02 1.69.18 2.49 1.35-.06.04-1.49.87-1.47 2.6ZM9.44 3.02c.48-.58.8-1.39.71-2.19-.69.03-1.53.46-2.02 1.04-.44.51-.83 1.33-.72 2.11.77.06 1.55-.39 2.03-.96Z" />
-    </svg>
-  );
-}
-
-function TiendaGoogle() {
-  return (
-    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-      <path fill="#00d3ff" d="M1.9 1.3 9 8.4l1.9-1.9L3.3.7C2.7.35 2.1.6 1.9 1.3Z" />
-      <path fill="#ffd400" d="M12.6 5.7 10.9 6.5 12.8 8.4l1.7-1c.7-.4.7-1.3 0-1.7l-1.9-1Z" />
-      <path fill="#ff3d47" d="M1.9 14.7c.2.7.8.95 1.4.6l7.6-4.4L9 9 1.9 14.7Z" />
-      <path fill="#00e676" d="M1.5 1.6C1.45 1.8 1.4 2 1.4 2.2v11.6c0 .2.05.4.1.6L9 8 1.5 1.6Z" />
-    </svg>
-  );
-}
-
-function BotonTienda({ tienda }: { tienda: "ios" | "android" }) {
-  const ios = tienda === "ios";
-  return (
-    <a
-      className="up-tienda"
-      href={ios ? TIENDAS_LVH.ios : TIENDAS_LVH.android}
-      target="_blank"
-      rel="noopener"
-    >
-      {ios ? <TiendaApple /> : <TiendaGoogle />}
-      <span>
-        <small>{ios ? "Descargala en" : "Disponible en"}</small>
-        {ios ? "App Store" : "Google Play"}
-      </span>
-    </a>
+    <div className="up-tiendas">
+      <a className="up-tienda" href={TIENDAS_LVH.ios} target="_blank" rel="noopener">
+        <img src="/appstore.webp" alt="Conseguila en el App Store" />
+      </a>
+      <a className="up-tienda" href={TIENDAS_LVH.android} target="_blank" rel="noopener">
+        <img src="/googleplay.webp" alt="Disponible en Google Play" />
+      </a>
+    </div>
   );
 }
 
@@ -412,14 +388,11 @@ export default function UpSoftworksLanding() {
 }
 .up-telefono img { display: block; width: 100%; height: auto; }
 
-/* botones de tienda */
-.up-tienda {
-  display: inline-flex; align-items: center; gap: 10px; line-height: 1.15; white-space: nowrap;
-  background: var(--superficie); border: 1px solid var(--linea); border-radius: 12px; padding: 10px 18px;
-}
-.up-tienda:hover { border-color: rgba(253,87,0,.5); }
-.up-tienda span { display: flex; flex-direction: column; font-family: 'Archivo'; font-weight: 700; font-size: 14px; }
-.up-tienda small { font-family: 'IBM Plex Sans'; font-weight: 400; font-size: 10.5px; color: var(--tenue); letter-spacing: .3px; }
+/* badges de tienda (imágenes oficiales en /public) */
+.up-tiendas { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
+.up-tienda { display: inline-flex; border-radius: 12px; }
+.up-tienda img { display: block; height: 46px; width: auto; }
+.up-tienda:hover { opacity: .85; }
 
 /* chip de logo de proyecto */
 .up-logo-chip { display: block; width: 56px; height: 56px; border-radius: 15px; object-fit: cover; border: 1px solid var(--linea); margin-bottom: 16px; }
@@ -471,15 +444,13 @@ export default function UpSoftworksLanding() {
 
 /* proyecto Liga VH: bloque a lo ancho con los tres productos */
 .up-feature { text-align: left; }
-.up-feature-head { display: flex; gap: 36px; align-items: flex-start; }
-.up-feature-id { max-width: 620px; }
+.up-feature-id { max-width: 640px; }
 .up-feature-id .up-cliente { margin-top: 0; }
 .up-proj-title { display: flex; align-items: center; gap: 16px; margin-top: 8px; }
 .up-proj-title .up-logo-chip { margin-bottom: 0; }
 .up-proj-title h3 { margin-top: 0; }
 .up-feature h3 { font-size: clamp(30px, 3.8vw, 44px); font-weight: 800; letter-spacing: -1.6px; line-height: 1.03; }
 .up-feature-desc { color: var(--tenue); margin-top: 16px; font-size: 16px; max-width: 62ch; }
-.up-feature-stores { display: flex; flex-direction: column; gap: 12px; flex-shrink: 0; }
 .up-feature-foot { display: grid; grid-template-columns: 1.1fr 1fr; gap: 24px 48px; align-items: start; margin-top: 44px; }
 .up-feature-foot .up-chips { margin-top: 0; }
 .up-feature-foot .up-nota { margin-top: 0; }
@@ -511,8 +482,6 @@ export default function UpSoftworksLanding() {
   .up-showcase, .up-showcase-duo { padding-bottom: 0; }
   .up-showcase-mini, .up-showcase-duo .up-showcase-mini { position: static; width: 100%; margin-top: 16px; }
   .up-telefono { position: static; right: auto; bottom: auto; width: 168px; margin: 16px auto 0; }
-  .up-feature-head { grid-template-columns: 1fr; gap: 24px; }
-  .up-feature-stores { flex-direction: row; flex-wrap: wrap; }
   .up-feature-foot { grid-template-columns: 1fr; }
   .up-cierre { margin: 0 22px; }
   .up-cierre-inner { padding: 80px 22px; }
@@ -700,31 +669,26 @@ export default function UpSoftworksLanding() {
 
             <div style={{ marginTop: 76 }}>
               <article className="up-feature">
-                <div className="up-feature-head">
-                  <div className="up-feature-id">
-                    <div className="up-cliente">LVH Eventos</div>
-                    <div className="up-proj-title">
-                      <img
-                        className="up-logo-chip"
-                        src="/ligavhlogo.png"
-                        alt=""
-                        width={56}
-                        height={56}
-                      />
-                      <h3>Liga VH</h3>
-                    </div>
-                    <p className="up-feature-desc">
-                      Plataforma para gestionar y consultar una liga de fútbol amateur de punta a
-                      punta. El panel administrativo le da a la organización el control operativo,
-                      deportivo y financiero de la competencia; el sitio y la app le sirven a
-                      jugadores, delegados e hinchas para seguir torneos, planteles, partidos,
-                      posiciones y estadísticas.
-                    </p>
+                <div className="up-feature-id">
+                  <div className="up-cliente">LVH Eventos</div>
+                  <div className="up-proj-title">
+                    <img
+                      className="up-logo-chip"
+                      src="/ligavhlogo.png"
+                      alt=""
+                      width={56}
+                      height={56}
+                    />
+                    <h3>Liga VH</h3>
                   </div>
-                  <div className="up-feature-stores">
-                    <BotonTienda tienda="ios" />
-                    <BotonTienda tienda="android" />
-                  </div>
+                  <p className="up-feature-desc">
+                    Plataforma para gestionar y consultar una liga de fútbol amateur de punta a
+                    punta. El panel administrativo le da a la organización el control operativo,
+                    deportivo y financiero de la competencia; el sitio y la app le sirven a
+                    jugadores, delegados e hinchas para seguir torneos, planteles, partidos,
+                    posiciones y estadísticas.
+                  </p>
+                  <TiendasLVH />
                 </div>
 
                 <ShowcaseLigaVH />
