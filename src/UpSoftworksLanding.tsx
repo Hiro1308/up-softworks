@@ -336,6 +336,90 @@ function Logo({ size = 32 }: LogoProps) {
   );
 }
 
+interface CapaNubeProps {
+  id: string;
+  clase: string;
+  baseFrequency: string;
+  numOctaves: number;
+  seed: number;
+  matriz: string;
+}
+
+/* Una capa de nubes: ruido fractal recoloreado convertido en un <pattern> de
+   1200px (stitchTiles hace que el ruido empalme). El pattern rellena un rect
+   ancho -> el motor de patterns tira las baldosas sin costura visible. El <g>
+   interior se desplaza -1200 (una baldosa) en loop lineal -> deriva lateral
+   continua sin salto. La máscara va en un <g> externo fijo. */
+function CapaNube({
+  id,
+  clase,
+  baseFrequency,
+  numOctaves,
+  seed,
+  matriz,
+}: CapaNubeProps) {
+  return (
+    <svg
+      className={`up-nubes ${clase}`}
+      preserveAspectRatio="none"
+      viewBox="0 0 2400 500"
+    >
+      <defs>
+        <filter id={`n-${id}`} x="0%" y="0%" width="100%" height="100%">
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency={baseFrequency}
+            numOctaves={numOctaves}
+            seed={seed}
+            stitchTiles="stitch"
+          />
+          <feColorMatrix type="matrix" values={matriz} />
+        </filter>
+        <pattern
+          id={`p-${id}`}
+          width="1200"
+          height="500"
+          patternUnits="userSpaceOnUse"
+        >
+          <rect width="1200" height="500" filter={`url(#n-${id})`} />
+        </pattern>
+        <linearGradient id={`m-${id}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#000" />
+          <stop offset="30%" stopColor="#4a4a4a" />
+          <stop offset="62%" stopColor="#ffffff" />
+          <stop offset="100%" stopColor="#000" />
+        </linearGradient>
+        <mask
+          id={`mk-${id}`}
+          maskUnits="userSpaceOnUse"
+          x="-2400"
+          y="0"
+          width="7200"
+          height="500"
+        >
+          <rect
+            x="-2400"
+            y="0"
+            width="7200"
+            height="500"
+            fill={`url(#m-${id})`}
+          />
+        </mask>
+      </defs>
+      <g mask={`url(#mk-${id})`}>
+        <g className="up-nube-g">
+          <rect
+            x="-1200"
+            width="4800"
+            height="500"
+            fill={`url(#p-${id})`}
+          />
+        </g>
+      </g>
+    </svg>
+  );
+}
+
 interface CieloProps {
   id?: string;
 }
@@ -343,109 +427,54 @@ interface CieloProps {
 function Cielo({ id = "a" }: CieloProps) {
   return (
     <div className="up-cielo" aria-hidden="true">
-      <div className="up-cielo-degrade" />
-      <div className="up-resplandor" />
-      <svg
-        className="up-estrellas"
-        viewBox="0 0 100 52"
-        preserveAspectRatio="none"
-      >
-        {ESTRELLAS.map((e, i) => (
-          <circle
-            key={i}
-            className="up-estrella"
-            cx={e.x}
-            cy={e.y}
-            r={e.r}
-            fill="#ffe4d0"
-            opacity={e.o}
-            style={{ animationDelay: `${(i % 9) * 0.7}s` }}
-          />
-        ))}
-      </svg>
-      <svg
-        className="up-nubes"
-        preserveAspectRatio="none"
-        viewBox="0 0 1200 500"
-      >
-        <defs>
-          <filter
-            id={`nube-cerca-${id}`}
-            x="0"
-            y="0"
-            width="100%"
-            height="100%"
-          >
-            <feTurbulence
-              type="fractalNoise"
-              baseFrequency="0.0035 0.011"
-              numOctaves="6"
-              seed="9"
-            />
-            <feColorMatrix
-              type="matrix"
-              values="0 0 0 0 1
-                      0 0 0 0 0.50
-                      0 0 0 0 0.16
-                      1.5 0 0 0 -0.46"
-            />
-          </filter>
-          <filter
-            id={`nube-lejos-${id}`}
-            x="0"
-            y="0"
-            width="100%"
-            height="100%"
-          >
-            <feTurbulence
-              type="fractalNoise"
-              baseFrequency="0.0016 0.006"
-              numOctaves="5"
-              seed="23"
-            />
-            <feColorMatrix
-              type="matrix"
-              values="0 0 0 0 1
-                      0 0 0 0 0.66
-                      0 0 0 0 0.34
-                      1.1 0 0 0 -0.50"
-            />
-          </filter>
-          <linearGradient
-            id={`degrade-mascara-${id}`}
-            x1="0"
-            y1="0"
-            x2="0"
-            y2="1"
-          >
-            <stop offset="0%" stopColor="#000" />
-            <stop offset="32%" stopColor="#4a4a4a" />
-            <stop offset="64%" stopColor="#ffffff" />
-            <stop offset="100%" stopColor="#000" />
-          </linearGradient>
-          <mask id={`mascara-${id}`}>
-            <rect
-              width="1200"
-              height="500"
-              fill={`url(#degrade-mascara-${id})`}
-            />
-          </mask>
-        </defs>
-        <g mask={`url(#mascara-${id})`}>
-          <rect
-            width="1200"
-            height="500"
-            filter={`url(#nube-lejos-${id})`}
-            opacity="0.5"
-          />
-          <rect
-            width="1200"
-            height="500"
-            filter={`url(#nube-cerca-${id})`}
-            opacity="0.7"
-          />
-        </g>
-      </svg>
+      {/* wrapper con el parallax (scroll + mouse). Lleva TODO adentro para que
+         el mix-blend-mode de las nubes siga mezclando con el degradé. */}
+      <div className="up-cielo-par">
+        <div className="up-cielo-degrade" />
+        <div className="up-resplandor" />
+        <svg
+          className="up-estrellas"
+          viewBox="0 0 100 52"
+          preserveAspectRatio="none"
+        >
+          <g className="up-estrellas-g">
+            {ESTRELLAS.map((e, i) => (
+              <circle
+                key={i}
+                className="up-estrella"
+                cx={e.x}
+                cy={e.y}
+                r={e.r}
+                fill="#ffe4d0"
+                opacity={e.o}
+                style={{ animationDelay: `${(i % 9) * 0.7}s` }}
+              />
+            ))}
+          </g>
+        </svg>
+        <CapaNube
+          id={`${id}-lejos`}
+          clase="up-nubes-lejos"
+          baseFrequency="0.0029 0.010"
+          numOctaves={5}
+          seed={23}
+          matriz="0 0 0 0 1
+                  0 0 0 0 0.66
+                  0 0 0 0 0.34
+                  1.1 0 0 0 -0.50"
+        />
+        <CapaNube
+          id={`${id}-cerca`}
+          clase="up-nubes-cerca"
+          baseFrequency="0.0062 0.019"
+          numOctaves={6}
+          seed={9}
+          matriz="0 0 0 0 1
+                  0 0 0 0 0.50
+                  0 0 0 0 0.16
+                  1.5 0 0 0 -0.46"
+        />
+      </div>
     </div>
   );
 }
@@ -757,6 +786,32 @@ function FormContacto({ t }: { t: Textos }) {
 }
 
 const MQ_MOBILE = "(max-width: 760px)";
+const NAV_OFFSET = 78; // alto del nav sticky
+
+/* Scrollea a una sección SIN tocar la URL (nada de /#servicios en la barra). */
+function irASeccion(
+  hash: string,
+  lenis: Lenis | null,
+  immediate = false,
+): void {
+  let el: Element | null;
+  try {
+    el = document.querySelector(hash);
+  } catch {
+    return;
+  }
+  if (!el) return;
+  if (lenis) {
+    lenis.scrollTo(el as HTMLElement, { offset: -NAV_OFFSET, immediate });
+    return;
+  }
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const top =
+    (el as HTMLElement).getBoundingClientRect().top +
+    window.scrollY -
+    NAV_OFFSET;
+  window.scrollTo({ top, behavior: immediate || reduce ? "auto" : "smooth" });
+}
 
 export default function UpSoftworksLanding() {
   const [scrolleado, setScrolleado] = useState<boolean>(false);
@@ -793,6 +848,7 @@ export default function UpSoftworksLanding() {
   }, []);
 
   // Reveal on scroll: cada .up-anim / .up-stagger aparece al entrar en viewport.
+  // Se re-observa al cambiar de idioma por si algún nodo se remontó.
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
@@ -820,7 +876,7 @@ export default function UpSoftworksLanding() {
     );
     nodos.forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, []);
+  }, [lang]);
 
   // Persiste el idioma y lo refleja en <html lang>.
   useEffect(() => {
@@ -839,13 +895,54 @@ export default function UpSoftworksLanding() {
       duration: 1.1,
       easing: (t: number): number => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       autoRaf: true,
-      anchors: { offset: -78 }, // alto del nav sticky
+      // los anchors los manejamos a mano para no ensuciar la URL
     });
     lenisRef.current = lenis;
     return () => {
       lenis.destroy();
       lenisRef.current = null;
     };
+  }, []);
+
+  // Links internos (#seccion): scroll suave SIN cambiar la URL.
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+
+    // si se entró con /#seccion, ir ahí y limpiar la barra
+    const inicial = window.location.hash;
+    if (inicial && inicial.length > 1) {
+      history.replaceState(
+        null,
+        "",
+        window.location.pathname + window.location.search,
+      );
+      requestAnimationFrame(() =>
+        irASeccion(inicial, lenisRef.current, true),
+      );
+    }
+
+    const onClick = (e: MouseEvent): void => {
+      if (
+        e.defaultPrevented ||
+        e.button !== 0 ||
+        e.metaKey ||
+        e.ctrlKey ||
+        e.shiftKey ||
+        e.altKey
+      ) {
+        return;
+      }
+      const a = (e.target as HTMLElement).closest<HTMLAnchorElement>(
+        'a[href^="#"]',
+      );
+      const hash = a?.getAttribute("href");
+      if (!hash || hash.length < 2) return;
+      e.preventDefault();
+      irASeccion(hash, lenisRef.current);
+    };
+    root.addEventListener("click", onClick);
+    return () => root.removeEventListener("click", onClick);
   }, []);
 
   useEffect(() => {
@@ -855,11 +952,43 @@ export default function UpSoftworksLanding() {
       // El cielo del hero se desvanece hacia el fondo oscuro a medida que se scrollea.
       const distancia = window.innerHeight * 0.8 || 640;
       const op = Math.max(0, Math.min(1, 1 - y / distancia));
-      heroRef.current?.style.setProperty("--cielo-op", op.toFixed(3));
+      const hero = heroRef.current;
+      if (hero) {
+        hero.style.setProperty("--cielo-op", op.toFixed(3));
+        // parallax de scroll: el cielo "se aleja" un poco mientras se scrollea el hero
+        const par = Math.min(y * 0.12, 130);
+        hero.style.setProperty("--cielo-par", `${par.toFixed(1)}px`);
+      }
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Parallax de mouse: el cielo sigue apenas al puntero (sólo desktop / con mouse).
+  useEffect(() => {
+    if (
+      window.matchMedia("(prefers-reduced-motion: reduce), (pointer: coarse)")
+        .matches
+    ) {
+      return;
+    }
+    let raf = 0;
+    const onMove = (e: PointerEvent): void => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const mx = e.clientX / window.innerWidth - 0.5;
+        const my = e.clientY / window.innerHeight - 0.5;
+        const el = rootRef.current;
+        el?.style.setProperty("--pmx", mx.toFixed(3));
+        el?.style.setProperty("--pmy", my.toFixed(3));
+      });
+    };
+    window.addEventListener("pointermove", onMove, { passive: true });
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      cancelAnimationFrame(raf);
+    };
   }, []);
 
   return (
@@ -928,8 +1057,12 @@ html.lenis, html.lenis body { height: auto; }
 
   /* nav: baja al cargar */
   .up-nav { animation: up-navdrop .55s cubic-bezier(.16,1,.3,1) both; }
-  /* nubes del cielo: deriva lenta */
-  .up-nubes { animation: up-deriva 34s ease-in-out infinite alternate; }
+  /* cielo con brisa: las nubes derivan lateralmente, solas, en loop continuo
+     (-1200 = una baldosa; al reiniciar la baldosa 2 queda donde estaba la 1,
+     no se nota el salto). Las lejanas van más lento -> profundidad. */
+  .up-nubes-lejos .up-nube-g { animation: up-brisa 62s linear infinite; }
+  .up-nubes-cerca .up-nube-g { animation: up-brisa 38s linear infinite; }
+  .up-estrellas-g { animation: up-estrellas-deriva 240s ease-in-out infinite alternate; }
   /* resplandor naranja: respiración suave */
   .up-resplandor { animation: up-glow 9s ease-in-out infinite alternate; }
   /* estrellas: titileo tenue */
@@ -949,7 +1082,14 @@ html.lenis, html.lenis body { height: auto; }
 @keyframes up-rise { from { opacity: 0; transform: translateY(32px); } to { opacity: 1; transform: none; } }
 @keyframes up-rise-in { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
 @keyframes up-bar { from { transform: scaleY(0); } to { transform: scaleY(1); } }
-@keyframes up-deriva { from { transform: translateX(-2.5%); } to { transform: translateX(2.5%); } }
+@keyframes up-brisa {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-1200px, 0, 0); }
+}
+@keyframes up-estrellas-deriva {
+  from { transform: translate(-1.5%, 0); }
+  to   { transform: translate(1.5%, 0.6%); }
+}
 @keyframes up-glow { from { opacity: .78; transform: translate(-50%, -50%) scale(.96); } to { opacity: 1; transform: translate(-50%, -50%) scale(1.05); } }
 @keyframes up-twinkle { from { opacity: .28; } to { opacity: .72; } }
 @keyframes up-navdrop { from { transform: translateY(-100%); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -1001,18 +1141,39 @@ html.lenis, html.lenis body { height: auto; }
     rgba(18,11,7,.42) 72%,
     rgba(18,11,7,.72) 100%);
 }
+/* wrapper de TODO el cielo: acá va el parallax (scroll --cielo-par + mouse
+   --pmx/--pmy). Está sobredimensionado y .up-cielo lo recorta. */
+.up-cielo-par {
+  position: absolute; inset: -11% -5%;
+  transform: translate3d(
+    calc(var(--pmx, 0) * 16px),
+    calc(var(--cielo-par, 0px) * -0.45 + var(--pmy, 0) * 13px),
+    0
+  );
+  transition: transform .5s cubic-bezier(.22,.61,.36,1);
+  will-change: transform;
+}
 .up-cielo-degrade {
   position: absolute; inset: 0;
   background: linear-gradient(180deg, #070403 0%, #0d0705 22%, #1d0c05 44%, #43160a 62%, #2a1207 82%, #120b07 100%);
 }
 .up-resplandor {
-  position: absolute; left: 50%; top: 63%; transform: translate(-50%, -50%);
-  width: 132%; height: 60%;
+  position: absolute; left: 50%; top: 60%; transform: translate(-50%, -50%);
+  width: 126%; height: 56%;
   background: radial-gradient(ellipse at center, rgba(253,87,0,.70) 0%, rgba(253,87,0,.26) 38%, rgba(253,87,0,0) 70%);
   filter: blur(20px);
 }
-.up-estrellas { position: absolute; top: 0; left: 0; width: 100%; height: 58%; }
-.up-nubes { position: absolute; left: -5%; bottom: 0; width: 110%; height: 76%; mix-blend-mode: screen; opacity: .85; }
+.up-estrellas { position: absolute; left: -6%; top: -2%; width: 112%; height: 62%; }
+.up-estrellas-g { transform-box: fill-box; transform-origin: 50% 50%; }
+/* viewBox 2400 = 2 baldosas de 1200; el SVG mide ~2x para que cada baldosa
+   ocupe una pantalla y sobre una a la derecha para entrar con la deriva */
+.up-nubes {
+  position: absolute; left: -22%; bottom: -5%; width: 264%; height: 90%;
+  mix-blend-mode: screen;
+}
+.up-nubes-lejos { opacity: .5; }
+.up-nubes-cerca { opacity: .72; }
+.up-nube-g { will-change: transform; }
 
 .up-hero-contenido {
   position: relative; z-index: 2;
@@ -1293,6 +1454,7 @@ html.lenis, html.lenis body { height: auto; }
 }
 @media (prefers-reduced-motion: reduce) {
   .up *, .up *::before, .up *::after { transition: none !important; animation: none !important; }
+  .up-cielo-par { transform: none !important; }
 }
       `}</style>
 
@@ -1392,8 +1554,8 @@ html.lenis, html.lenis body { height: auto; }
                 <p>{t.servicios.cards[0].p}</p>
                 <div className="up-card-visual">
                   <div className="up-mini up-stagger">
-                    {t.servicios.vGestion.map(([k, v]) => (
-                      <div className="up-mini-fila" key={k}>
+                    {t.servicios.vGestion.map(([k, v], i) => (
+                      <div className="up-mini-fila" key={i}>
                         <span>{k}</span>
                         <span className="up-mini-estado">{v}</span>
                       </div>
@@ -1444,8 +1606,8 @@ html.lenis, html.lenis body { height: auto; }
                 <p>{t.servicios.cards[3].p}</p>
                 <div className="up-card-visual">
                   <div className="up-mini up-stagger">
-                    {t.servicios.vWeb.map(([k, v]) => (
-                      <div className="up-mini-fila" key={k}>
+                    {t.servicios.vWeb.map(([k, v], i) => (
+                      <div className="up-mini-fila" key={i}>
                         <span>{k}</span>
                         <span className="up-mini-estado">{v}</span>
                       </div>
@@ -1558,7 +1720,7 @@ html.lenis, html.lenis body { height: auto; }
               {t.enfoque.pilares.map((p, i) => (
                 <article
                   className="up-pilar up-anim"
-                  key={p.t}
+                  key={i}
                   style={{ "--d": `${i * 0.1}s` } as CSSProperties}
                 >
                   <h4>{p.t}</h4>
