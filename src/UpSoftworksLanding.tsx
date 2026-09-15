@@ -336,95 +336,32 @@ function Logo({ size = 32 }: LogoProps) {
   );
 }
 
-interface CapaNubeProps {
-  id: string;
-  clase: string;
-  baseFrequency: string;
-  numOctaves: number;
-  seed: number;
-  matriz: string;
-}
-
-/* Una capa de nubes: ruido fractal recoloreado convertido en un <pattern> de
-   1200px (stitchTiles hace que el ruido empalme). El pattern rellena un rect
-   ancho -> el motor de patterns tira las baldosas sin costura visible. El <g>
-   interior se desplaza -1200 (una baldosa) en loop lineal -> deriva lateral
-   continua sin salto. La máscara va en un <g> externo fijo. */
-function CapaNube({
-  id,
-  clase,
-  baseFrequency,
-  numOctaves,
-  seed,
-  matriz,
-}: CapaNubeProps) {
+/* Nubes: antes eran feTurbulence en vivo (SVG filter + pattern + blend,
+   recalculado sin parar) -> carísimo de pintar, sobre todo en Firefox
+   ("lageaba todo"). Ahora son 2 texturas WebP horneadas UNA sola vez (mismo
+   ruido/color de siempre -stitchTiles para que tile-en, y el fundido
+   arriba/abajo ya horneado en el canal alfa) y se animan con
+   background-repeat + transform: es prácticamente gratis para cualquier
+   navegador, ya no hay filtro ni máscara corriendo por frame.
+   /public/nubes-lejos.webp y nubes-cerca.webp se generaron rasterizando en
+   canvas un <svg><feTurbulence stitchTiles="stitch">+<feColorMatrix></svg> de
+   1200x500 (baseFrequency "0.0029 0.010" numOctaves=5 seed=23 para lejos;
+   "0.0062 0.019" numOctaves=6 seed=9 para cerca; misma matriz de color que
+   tenían antes) y multiplicando el alfa resultante por el fundido vertical
+   (0 -> .35 en 30% -> 1 en 62% -> 0). Si hay que retocarlas, regenerar con
+   esos mismos parámetros. */
+function CapaNube({ clase, src }: { clase: string; src: string }) {
   return (
-    <svg
-      className={`up-nubes ${clase}`}
-      preserveAspectRatio="none"
-      viewBox="0 0 2400 500"
-    >
-      <defs>
-        <filter id={`n-${id}`} x="0%" y="0%" width="100%" height="100%">
-          <feTurbulence
-            type="fractalNoise"
-            baseFrequency={baseFrequency}
-            numOctaves={numOctaves}
-            seed={seed}
-            stitchTiles="stitch"
-          />
-          <feColorMatrix type="matrix" values={matriz} />
-        </filter>
-        <pattern
-          id={`p-${id}`}
-          width="1200"
-          height="500"
-          patternUnits="userSpaceOnUse"
-        >
-          <rect width="1200" height="500" filter={`url(#n-${id})`} />
-        </pattern>
-        <linearGradient id={`m-${id}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#000" />
-          <stop offset="30%" stopColor="#4a4a4a" />
-          <stop offset="62%" stopColor="#ffffff" />
-          <stop offset="100%" stopColor="#000" />
-        </linearGradient>
-        <mask
-          id={`mk-${id}`}
-          maskUnits="userSpaceOnUse"
-          x="-2400"
-          y="0"
-          width="7200"
-          height="500"
-        >
-          <rect
-            x="-2400"
-            y="0"
-            width="7200"
-            height="500"
-            fill={`url(#m-${id})`}
-          />
-        </mask>
-      </defs>
-      <g mask={`url(#mk-${id})`}>
-        <g className="up-nube-g">
-          <rect
-            x="-1200"
-            width="4800"
-            height="500"
-            fill={`url(#p-${id})`}
-          />
-        </g>
-      </g>
-    </svg>
+    <div className={`up-nube-mascara ${clase}`}>
+      <div
+        className="up-nube-capa"
+        style={{ backgroundImage: `url(${src})` }}
+      />
+    </div>
   );
 }
 
-interface CieloProps {
-  id?: string;
-}
-
-function Cielo({ id = "a" }: CieloProps) {
+function Cielo() {
   return (
     <div className="up-cielo" aria-hidden="true">
       {/* wrapper con el parallax (scroll + mouse). Lleva TODO adentro para que
@@ -452,28 +389,8 @@ function Cielo({ id = "a" }: CieloProps) {
             ))}
           </g>
         </svg>
-        <CapaNube
-          id={`${id}-lejos`}
-          clase="up-nubes-lejos"
-          baseFrequency="0.0029 0.010"
-          numOctaves={5}
-          seed={23}
-          matriz="0 0 0 0 1
-                  0 0 0 0 0.66
-                  0 0 0 0 0.34
-                  1.1 0 0 0 -0.50"
-        />
-        <CapaNube
-          id={`${id}-cerca`}
-          clase="up-nubes-cerca"
-          baseFrequency="0.0062 0.019"
-          numOctaves={6}
-          seed={9}
-          matriz="0 0 0 0 1
-                  0 0 0 0 0.50
-                  0 0 0 0 0.16
-                  1.5 0 0 0 -0.46"
-        />
+        <CapaNube clase="up-nubes-lejos" src="/nubes-lejos.webp" />
+        <CapaNube clase="up-nubes-cerca" src="/nubes-cerca.webp" />
       </div>
     </div>
   );
@@ -945,27 +862,43 @@ export default function UpSoftworksLanding() {
     return () => root.removeEventListener("click", onClick);
   }, []);
 
+  // El cielo del hero se desvanece + hace parallax al scrollear. Los vars van
+  // directo en .up-cielo (no en toda la sección) y a lo sumo 1 vez por frame,
+  // para no forzar un recálculo de estilos grande en cada scroll (Firefox es
+  // bastante más estricto que Chrome con esto).
   useEffect(() => {
-    const onScroll = (): void => {
+    const cielo =
+      heroRef.current?.querySelector<HTMLElement>(".up-cielo") ?? null;
+    let raf = 0;
+    let pendiente = false;
+    const aplicar = (): void => {
+      pendiente = false;
       const y = window.scrollY;
       setScrolleado(y > 40);
-      // El cielo del hero se desvanece hacia el fondo oscuro a medida que se scrollea.
       const distancia = window.innerHeight * 0.8 || 640;
       const op = Math.max(0, Math.min(1, 1 - y / distancia));
-      const hero = heroRef.current;
-      if (hero) {
-        hero.style.setProperty("--cielo-op", op.toFixed(3));
-        // parallax de scroll: el cielo "se aleja" un poco mientras se scrollea el hero
+      if (cielo) {
+        cielo.style.setProperty("--cielo-op", op.toFixed(3));
         const par = Math.min(y * 0.12, 130);
-        hero.style.setProperty("--cielo-par", `${par.toFixed(1)}px`);
+        cielo.style.setProperty("--cielo-par", `${par.toFixed(1)}px`);
       }
     };
+    const onScroll = (): void => {
+      if (pendiente) return;
+      pendiente = true;
+      raf = requestAnimationFrame(aplicar);
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-    return () => window.removeEventListener("scroll", onScroll);
+    aplicar();
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(raf);
+    };
   }, []);
 
-  // Parallax de mouse: el cielo sigue apenas al puntero (sólo desktop / con mouse).
+  // Parallax de mouse: el cielo sigue apenas al puntero (sólo desktop / con
+  // mouse). Los vars van directo en cada .up-cielo-par, no en toda la página,
+  // por lo mismo: acotar qué tiene que recalcular el navegador por frame.
   useEffect(() => {
     if (
       window.matchMedia("(prefers-reduced-motion: reduce), (pointer: coarse)")
@@ -973,15 +906,19 @@ export default function UpSoftworksLanding() {
     ) {
       return;
     }
+    const capas =
+      rootRef.current?.querySelectorAll<HTMLElement>(".up-cielo-par") ?? null;
+    if (!capas || !capas.length) return;
     let raf = 0;
     const onMove = (e: PointerEvent): void => {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
-        const mx = e.clientX / window.innerWidth - 0.5;
-        const my = e.clientY / window.innerHeight - 0.5;
-        const el = rootRef.current;
-        el?.style.setProperty("--pmx", mx.toFixed(3));
-        el?.style.setProperty("--pmy", my.toFixed(3));
+        const mx = (e.clientX / window.innerWidth - 0.5).toFixed(3);
+        const my = (e.clientY / window.innerHeight - 0.5).toFixed(3);
+        capas.forEach((el) => {
+          el.style.setProperty("--pmx", mx);
+          el.style.setProperty("--pmy", my);
+        });
       });
     };
     window.addEventListener("pointermove", onMove, { passive: true });
@@ -989,6 +926,27 @@ export default function UpSoftworksLanding() {
       window.removeEventListener("pointermove", onMove);
       cancelAnimationFrame(raf);
     };
+  }, []);
+
+  // Pausar nubes/estrellas/resplandor cuando su cielo no está en pantalla:
+  // son animaciones infinitas (deriva + blend + blur) y en una página larga
+  // como esta pasan la mayor parte del tiempo fuera de vista.
+  useEffect(() => {
+    const cielos =
+      rootRef.current?.querySelectorAll<HTMLElement>(".up-cielo") ?? null;
+    if (!cielos || !cielos.length || !("IntersectionObserver" in window)) {
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entradas) => {
+        for (const e of entradas) {
+          e.target.classList.toggle("up-fuera-de-vista", !e.isIntersecting);
+        }
+      },
+      { rootMargin: "200px 0px" },
+    );
+    cielos.forEach((el) => io.observe(el));
+    return () => io.disconnect();
   }, []);
 
   return (
@@ -1057,11 +1015,12 @@ html.lenis, html.lenis body { height: auto; }
 
   /* nav: baja al cargar */
   .up-nav { animation: up-navdrop .55s cubic-bezier(.16,1,.3,1) both; }
-  /* cielo con brisa: las nubes derivan lateralmente, solas, en loop continuo
-     (-1200 = una baldosa; al reiniciar la baldosa 2 queda donde estaba la 1,
-     no se nota el salto). Las lejanas van más lento -> profundidad. */
-  .up-nubes-lejos .up-nube-g { animation: up-brisa 62s linear infinite; }
-  .up-nubes-cerca .up-nube-g { animation: up-brisa 38s linear infinite; }
+  /* cielo con brisa: las nubes derivan lateralmente, solas, en loop continuo.
+     background-repeat tira las baldosas -> no hace falta ningún truco de
+     empalme, alcanza con desplazar el fondo un ancho de baldosa y reiniciar.
+     Las lejanas van más lento -> profundidad. */
+  .up-nubes-lejos .up-nube-capa { animation: up-brisa-bg 62s linear infinite; }
+  .up-nubes-cerca .up-nube-capa { animation: up-brisa-bg 38s linear infinite; }
   .up-estrellas-g { animation: up-estrellas-deriva 240s ease-in-out infinite alternate; }
   /* resplandor naranja: respiración suave */
   .up-resplandor { animation: up-glow 9s ease-in-out infinite alternate; }
@@ -1082,9 +1041,9 @@ html.lenis, html.lenis body { height: auto; }
 @keyframes up-rise { from { opacity: 0; transform: translateY(32px); } to { opacity: 1; transform: none; } }
 @keyframes up-rise-in { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
 @keyframes up-bar { from { transform: scaleY(0); } to { transform: scaleY(1); } }
-@keyframes up-brisa {
+@keyframes up-brisa-bg {
   from { transform: translate3d(0, 0, 0); }
-  to   { transform: translate3d(-1200px, 0, 0); }
+  to   { transform: translate3d(calc(var(--nube-ancho, 1500px) * -1), 0, 0); }
 }
 @keyframes up-estrellas-deriva {
   from { transform: translate(-1.5%, 0); }
@@ -1119,7 +1078,12 @@ html.lenis, html.lenis body { height: auto; }
 
 /* ---------- cielo ---------- */
 .up-hero { position: relative; margin-top: -78px; padding-top: 78px; min-height: 100vh; }
-.up-cielo { position: absolute; inset: 0; overflow: hidden; z-index: 0; }
+.up-cielo { position: absolute; inset: 0; overflow: hidden; z-index: 0; contain: paint; }
+/* fuera de vista (scrolleado lejos): se pausan nubes/estrellas/resplandor.
+   Son animaciones infinitas (deriva + blend + blur) y no hace falta que
+   sigan corriendo cuando no se ven -> menos trabajo de fondo en toda la
+   página, sobre todo en navegadores que componen esto peor (Firefox). */
+.up-cielo.up-fuera-de-vista * { animation-play-state: paused !important; }
 /* El cielo del hero queda "pinneado" al viewport mientras se scrollea el hero:
    el contenido pasa por encima y da la sensación de fondo real, no de imagen.
    Los negative margins lo sacan del flujo para que no empuje al contenido.
@@ -1165,15 +1129,22 @@ html.lenis, html.lenis body { height: auto; }
 }
 .up-estrellas { position: absolute; left: -6%; top: -2%; width: 112%; height: 62%; }
 .up-estrellas-g { transform-box: fill-box; transform-origin: 50% 50%; }
-/* viewBox 2400 = 2 baldosas de 1200; el SVG mide ~2x para que cada baldosa
-   ocupe una pantalla y sobre una a la derecha para entrar con la deriva */
-.up-nubes {
-  position: absolute; left: -22%; bottom: -5%; width: 264%; height: 90%;
-  mix-blend-mode: screen;
+/* nubes horneadas (WebP, el fundido arriba/abajo ya viene en el alfa de la
+   imagen): el wrapper fijo sólo recorta + mezcla con el degradé, adentro
+   desliza la capa con la textura repetida. Igual look que antes, sin filtro
+   ni máscara en vivo -> nada de feTurbulence/mask-image por frame. */
+.up-nube-mascara {
+  position: absolute; left: 0; width: 100%; bottom: -5%; height: 90%;
+  overflow: hidden; mix-blend-mode: screen;
 }
 .up-nubes-lejos { opacity: .5; }
 .up-nubes-cerca { opacity: .72; }
-.up-nube-g { will-change: transform; }
+.up-nube-capa {
+  position: absolute; inset: -12% -100%;
+  background-repeat: repeat-x; background-position: left center;
+  background-size: var(--nube-ancho, 1500px) auto;
+  will-change: transform;
+}
 
 .up-hero-contenido {
   position: relative; z-index: 2;
@@ -1417,8 +1388,10 @@ html.lenis, html.lenis body { height: auto; }
   .up-hueco-cara { grid-template-columns: 1fr; gap: 36px; }
   .up-hueco-tapa, .up-hueco-labio { height: 54px; }
   .up-pie-grilla { grid-template-columns: 1fr 1fr; }
+  .up-nube-capa { --nube-ancho: 1100px; }
 }
 @media (max-width: 560px) {
+  .up-nube-capa { --nube-ancho: 820px; }
   .up-nav .up-marca-nombre { display: none; }
   .up-marco { padding: 0 26px; }
   .up-seccion { padding: 64px 0; }
@@ -1503,7 +1476,7 @@ html.lenis, html.lenis body { height: auto; }
 
       <main id="inicio">
         <section className="up-hero" ref={heroRef}>
-          <Cielo id="hero" />
+          <Cielo />
           <div className="up-marco up-hero-contenido up-centro">
             <h1 className="up-anim">
               {t.hero.h1a}
@@ -1732,7 +1705,7 @@ html.lenis, html.lenis body { height: auto; }
         </section>
 
         <section id="contacto" className="up-hueco">
-          <Cielo id="cierre" />
+          <Cielo />
           <svg
             className="up-hueco-tapa"
             viewBox="0 0 1200 74"
