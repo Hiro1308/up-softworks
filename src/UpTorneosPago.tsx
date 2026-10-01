@@ -290,15 +290,6 @@ export default function UpTorneosPago() {
     setPaying(true);
 
     try {
-      /*
-       * El navegador manda únicamente
-       * el token temporal.
-       *
-       * El backend vuelve a resolver:
-       * - factura
-       * - liga
-       * - suscripción Paddle
-       */
       const response = await fetch(
         `${SUPABASE_URL}/functions/v1/iniciar-pago-factura`,
         {
