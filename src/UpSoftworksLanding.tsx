@@ -31,10 +31,6 @@ const CONFIG: Config = {
   email: "upsoftworksuy@gmail.com",
   whatsapp: "+598 00 000 000", // TODO: número real
   ubicacion: "Uruguay",
-  // Endpoint del form de contacto. Formsubmit no necesita backend ni cuenta:
-  // el primer envío dispara un mail de activación a esta casilla (hay que
-  // confirmarlo una vez). Se puede cambiar por un endpoint propio sin tocar
-  // el componente.
   formEndpoint: "https://formsubmit.co/ajax/upsoftworksuy@gmail.com",
 };
 
@@ -834,9 +830,7 @@ export default function UpSoftworksLanding() {
         "",
         window.location.pathname + window.location.search,
       );
-      requestAnimationFrame(() =>
-        irASeccion(inicial, lenisRef.current, true),
-      );
+      requestAnimationFrame(() => irASeccion(inicial, lenisRef.current, true));
     }
 
     const onClick = (e: MouseEvent): void => {
