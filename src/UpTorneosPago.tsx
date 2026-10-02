@@ -2,7 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 
 import { initializePaddle, type Paddle } from "@paddle/paddle-js";
 
+
+
 type Factura = {
+
   id_factura: number;
 
   periodo: string;
@@ -18,15 +21,23 @@ type Factura = {
   estado_pago: string;
 
   pagada: boolean;
+
 };
 
+
+
 type ResolverResponse = {
+
   factura?: Factura;
 
   error?: string;
+
 };
 
+
+
 type IniciarPagoResponse = {
+
   ok?: boolean;
 
   pagada?: boolean;
@@ -38,7 +49,10 @@ type IniciarPagoResponse = {
   message?: string;
 
   error?: string;
+
 };
+
+
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 
@@ -50,9 +64,14 @@ const PADDLE_ENV = (import.meta.env.VITE_PADDLE_ENV ?? "sandbox") as
   | "sandbox"
   | "production";
 
+
+
 const IS_DEV = import.meta.env.DEV;
 
+
+
 const DEMO_FACTURA: Factura = {
+
   id_factura: 999,
 
   periodo: "2026-09-01",
@@ -68,30 +87,55 @@ const DEMO_FACTURA: Factura = {
   estado_pago: "pendiente",
 
   pagada: false,
+
 };
 
+
+
 function money(value: unknown) {
+
   const n = Number(value ?? 0);
 
+
+
   if (!Number.isFinite(n)) {
+
     return "USD 0,00";
+
   }
+
+
 
   return `USD ${n.toFixed(2).replace(".", ",")}`;
+
 }
 
+
+
 function formatPeriod(period: string) {
+
   const parts = period.split("-");
 
+
+
   if (parts.length < 2) {
+
     return period;
+
   }
+
+
 
   const year = Number(parts[0]);
 
+
+
   const month = Number(parts[1]);
 
+
+
   const months = [
+
     "Enero",
 
     "Febrero",
@@ -115,49 +159,92 @@ function formatPeriod(period: string) {
     "Noviembre",
 
     "Diciembre",
+
   ];
 
+
+
   if (
+
     !Number.isFinite(year) ||
+
     !Number.isFinite(month) ||
+
     month < 1 ||
+
     month > 12
+
   ) {
+
     return period;
+
   }
 
+
+
   return `${months[month - 1]} ${year}`;
+
 }
 
+
+
 function estadoLabel(estado: string) {
+
   switch (estado) {
+
     case "pagada":
+
       return "Pagada";
 
+
+
     case "esperando_pago":
+
       return "Pago pendiente";
+
+
 
     case "creando_transaccion":
+
       return "Procesando";
 
+
+
     case "fallida":
+
       return "Pago pendiente";
 
+
+
     case "cancelada":
+
       return "Pendiente";
 
+
+
     case "pendiente":
+
       return "Pendiente";
 
     default:
+
       return "Pendiente";
+
   }
+
 }
 
+
+
 export default function UpTorneosPago() {
+
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
 
+
+
   const token = params.get("t") ?? "";
+
+
 
   /*
 
@@ -175,15 +262,27 @@ export default function UpTorneosPago() {
 
   const demo = IS_DEV && params.get("demo") === "1";
 
+
+
   const [factura, setFactura] = useState<Factura | null>(
+
     demo ? DEMO_FACTURA : null,
+
   );
+
+
 
   const [loading, setLoading] = useState(!demo);
 
+
+
   const [paying, setPaying] = useState(false);
 
+
+
   const [error, setError] = useState("");
+
+
 
   const [success, setSuccess] = useState("");
 
@@ -194,6 +293,8 @@ export default function UpTorneosPago() {
   );
 
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+
+
 
   /*
    * Esta página usa su propio título e ícono en la pestaña.
@@ -245,6 +346,8 @@ export default function UpTorneosPago() {
       }
     };
   }, []);
+
+
 
   /*
    * Inicializamos Paddle.js solamente para esta pantalla.
@@ -332,87 +435,167 @@ export default function UpTorneosPago() {
     };
   }, [demo, token]);
 
+
+
   useEffect(() => {
+
     if (demo) {
+
       return;
+
     }
+
+
 
     let mounted = true;
 
+
+
     async function resolveLink() {
+
       setLoading(true);
 
       setError("");
 
+
+
       if (!token) {
+
         setError("Este enlace no es válido o ya no está disponible.");
 
+
+
         setLoading(false);
 
+
+
         return;
+
       }
+
+
 
       if (!SUPABASE_URL) {
+
         setError("No se pudo conectar con el servicio.");
+
+
 
         setLoading(false);
 
+
+
         return;
+
       }
 
+
+
       try {
+
         const response = await fetch(
+
           `${SUPABASE_URL}/functions/v1/resolver-link-pago`,
 
           {
+
             method: "POST",
 
+
+
             headers: {
+
               "Content-Type": "application/json",
+
             },
 
+
+
             body: JSON.stringify({
+
               token,
+
             }),
+
           },
+
         );
+
+
 
         const json = (await response.json()) as ResolverResponse;
 
+
+
         if (!response.ok) {
+
           throw new Error(json.error ?? "No se pudo validar el enlace.");
+
         }
+
+
 
         if (!json.factura) {
+
           throw new Error("No encontramos la información solicitada.");
+
         }
 
+
+
         if (mounted) {
+
           setFactura(json.factura);
+
         }
+
       } catch (e) {
+
         console.error(e);
 
+
+
         if (mounted) {
+
           setError(
+
             e instanceof Error
+
               ? e.message
+
               : "No se pudo cargar la información.",
+
           );
+
         }
+
       } finally {
+
         if (mounted) {
+
           setLoading(false);
+
         }
+
       }
+
     }
+
+
 
     resolveLink();
 
+
+
     return () => {
+
       mounted = false;
+
     };
+
   }, [token, demo]);
+
+
 
   async function refreshInvoice(): Promise<Factura | null> {
     if (demo || !token || !SUPABASE_URL) {
@@ -447,6 +630,7 @@ export default function UpTorneosPago() {
 
     return null;
   }
+
 
   async function payInvoice() {
     setError("");
@@ -530,25 +714,41 @@ export default function UpTorneosPago() {
           theme: "light",
           locale: "es",
           allowLogout: true,
+
+          /*
+           * La factura ya viene cerrada desde nuestro backend.
+           * No permitimos que el comprador aplique descuentos.
+           */
+          showAddDiscounts: false,
+          allowDiscountRemoval: false,
         },
       });
     } catch (e) {
       console.error(e);
       setCheckoutOpen(false);
       setError(
-        e instanceof Error ? e.message : "No se pudo completar la operación.",
+        e instanceof Error
+          ? e.message
+          : "No se pudo completar la operación.",
       );
     } finally {
       setPaying(false);
     }
   }
 
+
   const paid = factura?.pagada === true;
+
+
 
   const estado = factura?.estado_pago ?? "pendiente";
 
+
+
   return (
+
     <div className="utp-page">
+
       <style>{`
 
         @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
@@ -2969,169 +3169,332 @@ export default function UpTorneosPago() {
 
       `}</style>
 
+
+
       <div className="utp-glow" />
 
       <div className="utp-grid" />
 
+
+
       <div className="utp-wrap">
+
         <header className="utp-nav">
+
           <div className="utp-brand">
+
             <img src="/uptorneos.png" alt="UP Torneos" className="utp-logo" />
 
+
+
             <span>UP Torneos</span>
+
           </div>
 
+
+
           <span className="utp-badge">
+
             {demo ? "DEMO LOCAL" : "ENTORNO SEGURO"}
+
           </span>
+
         </header>
 
+
+
         <main className="utp-main">
+
           <section>
+
             <div className="utp-kicker">Gestión de cuenta</div>
 
+
+
             <h1 className="utp-title">
+
               Todo claro,
+
               <br />
+
               <span>en un solo lugar.</span>
+
             </h1>
 
+
+
             <p className="utp-sub">
+
               Revisá el resumen de tu período y completá cualquier gestión
+
               pendiente de forma simple y segura.
+
             </p>
 
+
+
             <div className="utp-points">
+
               <div className="utp-point">
+
                 <span className="utp-dot">✓</span>
+
                 Información clara y actualizada.
+
               </div>
 
+
+
               <div className="utp-point">
+
                 <span className="utp-dot">✓</span>
+
                 Estado de tu cuenta en tiempo real.
+
               </div>
 
+
+
               <div className="utp-point">
+
                 <span className="utp-dot">✓</span>
+
                 Operaciones procesadas de forma segura.
+
               </div>
+
             </div>
+
           </section>
 
+
+
           <aside className="utp-card">
+
             {loading ? (
+
               <div className="utp-loading">
+
                 <div className="utp-spinner" />
+
                 Cargando información...
+
               </div>
+
             ) : error && !factura ? (
+
               <div className="utp-invalid">
+
                 <strong>No pudimos abrir este enlace</strong>
+
+
 
                 <p>{error}</p>
 
+
+
                 <p>Volvé a la aplicación y generá un nuevo enlace.</p>
+
               </div>
+
             ) : factura ? (
+
               <>
+
                 <div className="utp-card-head">
+
                   <div>
+
                     <small>Resumen del período</small>
 
+
+
                     <strong>{formatPeriod(factura.periodo)}</strong>
+
                   </div>
+
+
 
                   <div className="utp-price">
+
                     <strong>{money(factura.total_usd)}</strong>
+
+
 
                     <span>total</span>
+
                   </div>
+
                 </div>
+
+
 
                 <div className="utp-summary">
+
                   <div className="utp-row">
+
                     <span>Actividad registrada</span>
 
+
+
                     <strong>{factura.cantidad_partidos}</strong>
+
                   </div>
 
+
+
                   <div className="utp-row">
+
                     <span>Importe del período</span>
 
+
+
                     <strong>{money(factura.importe_original_usd)}</strong>
+
                   </div>
+
+
 
                   {Number(factura.descuentos_borrados_usd) > 0 && (
+
                     <div className="utp-row">
+
                       <span>Descuentos aplicados</span>
 
+
+
                       <strong>-{money(factura.descuentos_borrados_usd)}</strong>
+
                     </div>
+
                   )}
 
+
+
                   <div className="utp-row">
+
                     <span>Estado</span>
 
+
+
                     <strong>
+
                       <span className={`utp-status ${paid ? "paid" : ""}`}>
+
                         {paid ? "✓ " : ""}
 
+
+
                         {estadoLabel(estado)}
+
                       </span>
+
                     </strong>
+
                   </div>
+
+
 
                   <div className="utp-row utp-total">
+
                     <span>Total</span>
 
+
+
                     <strong>{money(factura.total_usd)}</strong>
+
                   </div>
+
                 </div>
+
+
 
                 {paid ? (
+
                   <div className="utp-success">
+
                     ✓ Esta gestión ya fue completada correctamente.
+
                   </div>
+
                 ) : (
+
                   <button
+
                     type="button"
+
                     className="utp-button"
+
                     onClick={payInvoice}
+
                     disabled={
-                      paying || checkoutOpen || (!demo && paddleLoading)
+                      paying ||
+                      checkoutOpen ||
+                      (!demo && paddleLoading)
                     }
+
                   >
+
                     {paying
+
                       ? "Preparando checkout..."
+
                       : checkoutOpen
+
                         ? "Checkout abierto"
+
                         : !demo && paddleLoading
+
                           ? "Preparando Paddle..."
+
                           : `Continuar · ${money(factura.total_usd)}`}
+
                   </button>
+
                 )}
 
+
+
                 <div className="utp-secure">
+
                   Procesado de forma segura mediante Paddle.
+
                 </div>
+
+
 
                 {success && !paid && (
                   <div className="utp-success">{success}</div>
                 )}
 
+
+
                 {error && factura && <div className="utp-error">{error}</div>}
 
+
+
                 <div className="utp-foot">
+
                   {demo
+
                     ? "Modo demo local · No se realiza ninguna operación real."
+
                     : "Este enlace es temporal y está asociado únicamente a esta gestión."}
+
                 </div>
+
               </>
+
             ) : null}
+
           </aside>
+
         </main>
+
       </div>
+
     </div>
+
   );
+
 }
