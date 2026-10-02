@@ -6,8 +6,18 @@ import UpTorneosPago from "./UpTorneosPago.tsx";
 
 const path = window.location.pathname.replace(/\/+$/, "") || "/";
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    {path === "/pago" ? <UpTorneosPago /> : <UpSoftworksLanding />}
-  </StrictMode>,
-);
+if (path === "/pago/resultado") {
+  window.location.replace(
+    `/pago/resultado/index.html${window.location.search}`,
+  );
+} else if (path === "/pago/cancelado") {
+  window.location.replace(
+    `/pago/cancelado/index.html${window.location.search}`,
+  );
+} else {
+  createRoot(document.getElementById("root")!).render(
+    <StrictMode>
+      {path === "/pago" ? <UpTorneosPago /> : <UpSoftworksLanding />}
+    </StrictMode>,
+  );
+}
