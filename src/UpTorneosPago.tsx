@@ -159,6 +159,20 @@ export default function UpTorneosPago() {
 
   const token = params.get("t") ?? "";
 
+  /*
+
+   * Solo funciona ejecutando Vite
+
+   * en modo desarrollo.
+
+   *
+
+   * En producción ?demo=1
+
+   * no habilita el modo demo.
+
+   */
+
   const demo = IS_DEV && params.get("demo") === "1";
 
   const [factura, setFactura] = useState<Factura | null>(
@@ -175,9 +189,11 @@ export default function UpTorneosPago() {
 
   const [paddle, setPaddle] = useState<Paddle>();
 
-  const [, setPaddleLoading] = useState(!demo && Boolean(PADDLE_CLIENT_TOKEN));
+  const [paddleLoading, setPaddleLoading] = useState(
+    !demo && Boolean(PADDLE_CLIENT_TOKEN),
+  );
 
-  const [, setCheckoutOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   /*
    * Esta página usa su propio título e ícono en la pestaña.
@@ -262,7 +278,6 @@ export default function UpTorneosPago() {
 
             if (event.name === "checkout.completed") {
               setCheckoutOpen(false);
-
               setSuccess("Pago recibido. Estamos confirmando la operación...");
 
               void (async () => {
@@ -289,7 +304,6 @@ export default function UpTorneosPago() {
 
             if (event.name === "checkout.error") {
               setCheckoutOpen(false);
-
               setError("Paddle no pudo abrir o procesar el checkout.");
             }
           },
@@ -316,7 +330,7 @@ export default function UpTorneosPago() {
     return () => {
       active = false;
     };
-  }, [demo]);
+  }, [demo, token]);
 
   useEffect(() => {
     if (demo) {
@@ -512,7 +526,7 @@ export default function UpTorneosPago() {
 
         settings: {
           displayMode: "overlay",
-          variant: "one-page",
+          variant: "multi-page",
           theme: "light",
           locale: "es",
           allowLogout: true,
@@ -3084,11 +3098,17 @@ export default function UpTorneosPago() {
                     type="button"
                     className="utp-button"
                     onClick={payInvoice}
-                    disabled={paying}
+                    disabled={
+                      paying || checkoutOpen || (!demo && paddleLoading)
+                    }
                   >
                     {paying
-                      ? "Procesando..."
-                      : `Continuar · ${money(factura.total_usd)}`}
+                      ? "Preparando checkout..."
+                      : checkoutOpen
+                        ? "Checkout abierto"
+                        : !demo && paddleLoading
+                          ? "Preparando Paddle..."
+                          : `Continuar · ${money(factura.total_usd)}`}
                   </button>
                 )}
 
@@ -3096,7 +3116,9 @@ export default function UpTorneosPago() {
                   Procesado de forma segura mediante Paddle.
                 </div>
 
-                {success && <div className="utp-success">{success}</div>}
+                {success && !paid && (
+                  <div className="utp-success">{success}</div>
+                )}
 
                 {error && factura && <div className="utp-error">{error}</div>}
 
