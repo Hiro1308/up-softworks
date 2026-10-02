@@ -1,0 +1,17 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "D9QL52TLWQ.com.upsoftworks.lvhapp"
+        ],
+        "components": [
+          {
+            "/": "/paypal/*",
+            "comment": "PayPal return and cancel links"
+          }
+        ]
+      }
+    ]
+  }
+}
