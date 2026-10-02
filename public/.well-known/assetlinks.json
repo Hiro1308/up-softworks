@@ -7,7 +7,21 @@
       "namespace": "android_app",
       "package_name": "com.upsoftworks.lvhapp",
       "sha256_cert_fingerprints": [
-        "6A:9B:E1:60:C3:6B:A3:51:CE:06:C1:10:86:32:D3:A1:7C:FD:BB:10:B4:B1:DD:8C:DD:F4:E1:8A:0F:5D:5B:29"
+        "6A:9B:E1:60:C3:6B:A3:51:CE:06:C1:10:86:32:D3:A1:7C:FD:BB:10:B4:B1:DD:8C:DD:F4:E1:8A:0F:5D:5B:29",
+        "4F:6C:2C:68:0F:DE:C5:C3:36:92:77:7F:91:28:0C:DC:09:F2:A6:9F:B5:98:32:E8:20:05:82:53:0A:21:D9:36"
+      ]
+    }
+  },
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.upsoftworks.uptorneos",
+      "sha256_cert_fingerprints": [
+        "6A:9B:E1:60:C3:6B:A3:51:CE:06:C1:10:86:32:D3:A1:7C:FD:BB:10:B4:B1:DD:8C:DD:F4:E1:8A:0F:5D:5B:29",
+        "4F:6C:2C:68:0F:DE:C5:C3:36:92:77:7F:91:28:0C:DC:09:F2:A6:9F:B5:98:32:E8:20:05:82:53:0A:21:D9:36"
       ]
     }
   }
