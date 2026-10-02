@@ -159,20 +159,6 @@ export default function UpTorneosPago() {
 
   const token = params.get("t") ?? "";
 
-  /*
-
-   * Solo funciona ejecutando Vite
-
-   * en modo desarrollo.
-
-   *
-
-   * En producción ?demo=1
-
-   * no habilita el modo demo.
-
-   */
-
   const demo = IS_DEV && params.get("demo") === "1";
 
   const [factura, setFactura] = useState<Factura | null>(
